@@ -74,70 +74,17 @@ const reliefFunds = [
 
 const FundCard = ({ fund }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const colorVariants = {
     red: "bg-red-50 text-red-600",
     blue: "bg-blue-50 text-blue-600",
     green: "bg-green-50 text-green-600",
   };
   const navigate = useNavigate();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [agreementUrl, setAgreementUrl] = useState(null);
-
-  // Add useEffect to initialize Clickwrap with agreement URL
-  useEffect(() => {
-    if (isDialogOpen) {
-      // Get agreement URL from API
-      const getAgreementUrl = async () => {
-        try {
-          const response = await fetch(
-            `${import.meta.env.VITE_BACKEND_URL}api/click`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                clientUserId: localStorage.getItem("email"),
-                documentData: {
-                  fullName: localStorage.getItem("full_name"),
-                  email: localStorage.getItem("email"),
-                  company: "",
-                  title: "",
-                  date: new Date().toISOString().split("T")[0],
-                  fundTitle: fund.title,
-                },
-              }),
-            }
-          );
-          const data = await response.json();
-          setAgreementUrl(data.agreementUrl);
-          console.log(data.agreementUrl);
-          // Initialize Clickwrap with agreement URL
-          if (window.docuSignClick && data.agreementUrl) {
-            window.docuSignClick.Clickwrap.render(
-              {
-                agreementUrl: data.agreementUrl,
-                onAgreed: () => {
-                  console.log("User has agreed to the terms");
-                  // You can trigger the donation process here
-                  handleDonate();
-                },
-              },
-              "#ds-clickwrap"
-            );
-          }
-        } catch (error) {
-          console.error("Error getting agreement URL:", error);
-        }
-      };
-
-      getAgreementUrl();
-    }
-  }, []);
 
   const handleDonate = async () => {
     setIsLoading(true);
-    console.log("Starting DocuSign flow for fund:", fund.id);
+    console.log("Starting donation flow for fund:", fund.id);
     try {
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}api/workflows`,
@@ -207,7 +154,6 @@ const FundCard = ({ fund }) => {
             {fund.locations.join(", ")}
           </div>
         </div>
-        <div id="ds-clickwrap"></div>
         <Dialog
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
@@ -232,12 +178,29 @@ const FundCard = ({ fund }) => {
               <div className="space-y-2">
                 <h4 className="font-semibold">Next Steps:</h4>
                 <ol className="text-sm text-gray-600 space-y-2">
-                  <li>1. Review and accept the agreement below</li>
-                  <li>2. Complete the donation agreement form</li>
-                  <li>3. Set up your payment details</li>
-                  <li>4. Receive confirmation and impact updates</li>
+                  <li>1. Complete the donation agreement form</li>
+                  <li>2. Set up your payment details</li>
+                  <li>3. Receive confirmation and impact updates</li>
                 </ol>
               </div>
+
+              <Button
+                className="w-full"
+                onClick={handleDonate}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Proceed with Donation
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
