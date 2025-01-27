@@ -75,6 +75,7 @@ const reliefFunds = [
 const FundCard = ({ fund }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [agreementUrl, setAgreementUrl] = useState(null);
   const colorVariants = {
     red: "bg-red-50 text-red-600",
     blue: "bg-blue-50 text-blue-600",
@@ -109,6 +110,55 @@ const FundCard = ({ fund }) => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Get agreement URL from API
+    const getAgreementUrl = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}api/click`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              clientUserId: localStorage.getItem("email"),
+              documentData: {
+                fullName: localStorage.getItem("full_name"),
+                email: localStorage.getItem("email"),
+                company: "",
+                title: "",
+                date: new Date().toISOString().split("T")[0],
+                fundTitle: fund.title,
+              },
+            }),
+          }
+        );
+        const data = await response.json();
+        setAgreementUrl(data.agreementUrl);
+        console.log(data.agreementUrl);
+        // Initialize Clickwrap with agreement URL
+        if (window.docuSignClick && data.agreementUrl) {
+          window.docuSignClick.Clickwrap.render(
+            {
+              agreementUrl: data.agreementUrl,
+              onAgreed: () => {
+                console.log("User has agreed to the terms");
+                // You can trigger the donation process here
+                handleDonate();
+              },
+            },
+            "#ds-clickwrap"
+          );
+        }
+      } catch (error) {
+        console.error("Error getting agreement URL:", error);
+      }
+    };
+
+    getAgreementUrl();
+  }, []);
 
   return (
     <Card className="relative overflow-hidden flex flex-col h-full">
@@ -157,6 +207,7 @@ const FundCard = ({ fund }) => {
             {fund.locations.join(", ")}
           </div>
         </div>
+        <div id="ds-clickwrap"></div>
         <Dialog
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
