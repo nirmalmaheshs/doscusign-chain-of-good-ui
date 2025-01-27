@@ -90,11 +90,11 @@ const FundCard = ({ fund }) => {
         `${import.meta.env.VITE_BACKEND_URL}api/workflows`,
         {
           method: "POST",
-          body: JSON.stringify({
+          body: {
             email: localStorage.getItem("email"),
             full_name: localStorage.getItem("full_name"),
             relief_program: fund.title,
-          }),
+          },
         }
       );
       const data = await response.json();
